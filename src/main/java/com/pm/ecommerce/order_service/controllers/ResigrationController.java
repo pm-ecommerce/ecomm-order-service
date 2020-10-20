@@ -42,20 +42,20 @@ public class ResigrationController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/user")
-    public ResponseEntity<ApiResponse<Account>> registerUser(@RequestBody Account postData){
-        ApiResponse<Account> response = new ApiResponse<>();
-        try {
-            Account account = service.registerCustomer(postData);
-            response.setData(account);
-            response.setMessage("User registered successfully.");
-        } catch (Exception e) {
-            response.setStatus(500);
-            response.setMessage(e.getMessage());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-
-        return ResponseEntity.ok(response);
-    }
+//    @PostMapping("/user")
+//    public ResponseEntity<ApiResponse<Account>> registerUser(@RequestBody Account postData){
+//        ApiResponse<Account> response = new ApiResponse<>();
+//        try {
+//            Account account = service.registerCustomer(postData);
+//            response.setData(account);
+//            response.setMessage("User registered successfully.");
+//        } catch (Exception e) {
+//            response.setStatus(500);
+//            response.setMessage(e.getMessage());
+//
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+//        }
+//
+//        return ResponseEntity.ok(response);
+//    }
 }
