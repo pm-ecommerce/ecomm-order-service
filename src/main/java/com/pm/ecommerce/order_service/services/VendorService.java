@@ -33,7 +33,7 @@ public class VendorService implements IVendorService {
         if (result.isPresent()) {
             vendor = result.get();
         } else {
-            throw new RuntimeException("Did not find by vendor id");
+            throw new RuntimeException("Did not find by vendor id - " + vendorId);
         }
         return vendor;
     }

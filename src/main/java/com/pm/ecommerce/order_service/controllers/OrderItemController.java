@@ -42,7 +42,7 @@ public class OrderItemController {
         return orderItemsService.getAllOrderItems();
     }
 
-    @GetMapping("/{orderItemId}")
+    @GetMapping("/orderItemId/{orderItemId}")
     public ResponseEntity<ApiResponse<OrderItem>> getOrderItemId(@PathVariable int orderItemId) {
         ApiResponse<OrderItem> response = new ApiResponse<>();
 
