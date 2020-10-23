@@ -40,12 +40,12 @@ public class AddressController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/all_addresses")
+    @GetMapping("/all")
     public List<Address> getAllAddresses() {
         return addressService.getAllAddresses();
     }
 
-    @GetMapping("/address/{addressId}")
+    @GetMapping("/{addressId}")
     public ResponseEntity<ApiResponse<Address>> getAddressId(@PathVariable int addressId) {
         ApiResponse<Address> response = new ApiResponse<>();
 
@@ -54,6 +54,36 @@ public class AddressController {
 
             response.setData(address);
             response.setMessage("Get address by id");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{addressId}")
+//    public String deleteEmployee(@PathVariable int addressId) {
+//
+//        Address address = addressService.findById(addressId);
+//
+//        // throw exception if null
+//
+//        if (address == null) {
+//            throw new RuntimeException("Address id not found - " + addressId);
+//        }
+//
+//        addressService.deleteById(addressId);
+//
+//        return "Deleted address id - " + addressId;
+//    }
+    public ResponseEntity<ApiResponse<Address>> deleteAddress(@PathVariable int addressId){
+        ApiResponse<Address> response = new ApiResponse<>();
+
+        try {
+            Address address = addressService.findById(addressId);
+            response.setData(address);
+            response.setMessage("Deleted address id - " + addressId);
         } catch (Exception e) {
             response.setStatus(500);
             response.setMessage(e.getMessage());

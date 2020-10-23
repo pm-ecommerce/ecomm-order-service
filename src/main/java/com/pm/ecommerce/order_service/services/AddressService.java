@@ -37,4 +37,11 @@ public class AddressService implements IAddressService {
         }
         return address;
     }
+
+    @Override
+    public void deleteById(int addressId) {
+        addressRepository.deleteById(addressId);
+    }
+
+
 }
