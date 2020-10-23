@@ -24,12 +24,6 @@ public class AddressController {
         try {
             Address address = addressService.registerAddress(postData);
 
-//            address.setAddress1(null);
-//            address.setAddress2(null);
-//            address.setZipcode(null);
-//            address.setCity(null);
-//            address.setCountry(null);
-
             response.setData(address);
             response.setMessage("Address registered successfully.");
         } catch (Exception e) {
@@ -51,7 +45,7 @@ public class AddressController {
 
         try {
             Address address = addressService.findById(addressId);
-
+            address.setId(0);
             response.setData(address);
             response.setMessage("Get address by id");
         } catch (Exception e) {
@@ -62,21 +56,31 @@ public class AddressController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/updateAddress")
+    public ResponseEntity<ApiResponse<Address>> updateAddress(@RequestBody Address updateAddress){
+        ApiResponse<Address> response = new ApiResponse<>();
+
+        try {
+            Address address = addressService.registerAddress(updateAddress);
+
+//            address.setAddress1(null);
+//            address.setAddress2(null);
+//            address.setZipcode(null);
+//            address.setCity(null);
+//            address.setCountry(null);
+
+            response.setData(address);
+            response.setMessage("Address registered successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+
     @DeleteMapping("/{addressId}")
-//    public String deleteEmployee(@PathVariable int addressId) {
-//
-//        Address address = addressService.findById(addressId);
-//
-//        // throw exception if null
-//
-//        if (address == null) {
-//            throw new RuntimeException("Address id not found - " + addressId);
-//        }
-//
-//        addressService.deleteById(addressId);
-//
-//        return "Deleted address id - " + addressId;
-//    }
     public ResponseEntity<ApiResponse<Address>> deleteAddress(@PathVariable int addressId){
         ApiResponse<Address> response = new ApiResponse<>();
 
