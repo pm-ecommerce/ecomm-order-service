@@ -13,16 +13,16 @@ import java.util.Optional;
 @Repository
 public interface CartRepository extends JpaRepository<Cart, Integer> {
 
+    // itemCart by product with
+
     // addCart by product with user id
     // remove cart by userid and cartid
     // getCartByuserId
 
-//    @Query("SELECT cart from Cart cart WHERE cart.id =: user.id.account.id.productId")
-//    List<Cart> getCartByuserId();
+//    @Query("Select addCart  FROM Cart addCart WHERE addCart.user =: userIid")
+//    List<Cart> getCartByuserId(@Param("userId")Integer userId);
 
-//    @Query("Select addCart FROM AddtoCart addCart WHERE addCart.user_id=:user_id")
-//    List<AddtoCart> getCartByuserId(@Param("user_id")Long user_id);
-
-
+//    @Query("Select addCart  FROM Cart addCart WHERE addCart.product.id= :product_id and addCart.user_id=:user_id")
+//    Optional<AddtoCart> getCartByProductIdAnduserId(@Param("user_id")Long user_id,@Param("product_id")Long product_id);
 
 }

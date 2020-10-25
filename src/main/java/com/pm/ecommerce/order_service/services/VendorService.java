@@ -26,7 +26,7 @@ public class VendorService implements IVendorService {
     }
 
     @Override
-    public Vendor finByIdVendor(int vendorId) {
+    public Vendor finById(int vendorId) {
         Optional<Vendor> result = vendorRepository.findById(vendorId);
 
         Vendor vendor = null;

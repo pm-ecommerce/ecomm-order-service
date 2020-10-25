@@ -86,6 +86,7 @@ public class AddressController {
 
         try {
             Address address = addressService.findById(addressId);
+            addressService.deleteById(addressId);
             response.setData(address);
             response.setMessage("Deleted address id - " + addressId);
         } catch (Exception e) {

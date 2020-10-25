@@ -50,7 +50,7 @@ public class VendorController {
         ApiResponse<Vendor> response = new ApiResponse<>();
 
         try {
-            Vendor vendor = vendorService.finByIdVendor(vendorId);
+            Vendor vendor = vendorService.finById(vendorId);
 
             // next update this part
             vendor.setRegistered(null);

@@ -10,5 +10,5 @@ public interface IVendorService {
 
     List<Vendor> getAllVendors();
 
-    Vendor finByIdVendor(int vendorId);
+    Vendor finById(int vendorId);
 }

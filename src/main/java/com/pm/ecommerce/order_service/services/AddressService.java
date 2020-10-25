@@ -29,7 +29,7 @@ public class AddressService implements IAddressService {
     public Address findById(int addressId) {
         Optional<Address> result = addressRepository.findById(addressId);
 
-        Address address = null;
+        Address address = new Address();
         if(result.isPresent()) {
             address = result.get();
         } else {
