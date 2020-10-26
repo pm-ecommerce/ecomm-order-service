@@ -2,7 +2,7 @@ package com.pm.ecommerce.order_service.controllers;
 
 import com.pm.ecommerce.entities.ApiResponse;
 import com.pm.ecommerce.entities.Vendor;
-import com.pm.ecommerce.order_service.interfaces.IVendorService;
+import com.pm.ecommerce.order_service.services.IVendorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

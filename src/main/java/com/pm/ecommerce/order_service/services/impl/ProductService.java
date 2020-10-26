@@ -1,4 +1,4 @@
-package com.pm.ecommerce.order_service.services;
+package com.pm.ecommerce.order_service.services.impl;
 
 import com.pm.ecommerce.entities.Category;
 import com.pm.ecommerce.entities.Product;

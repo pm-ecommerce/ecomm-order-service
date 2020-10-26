@@ -1,7 +1,7 @@
-package com.pm.ecommerce.order_service.services;
+package com.pm.ecommerce.order_service.services.impl;
 
 import com.pm.ecommerce.entities.Vendor;
-import com.pm.ecommerce.order_service.interfaces.IVendorService;
+import com.pm.ecommerce.order_service.services.IVendorService;
 import com.pm.ecommerce.order_service.repositories.VendorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

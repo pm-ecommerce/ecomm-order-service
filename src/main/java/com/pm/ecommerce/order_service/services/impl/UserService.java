@@ -1,7 +1,7 @@
-package com.pm.ecommerce.order_service.services;
+package com.pm.ecommerce.order_service.services.impl;
 
 import com.pm.ecommerce.entities.User;
-import com.pm.ecommerce.order_service.interfaces.IUserService;
+import com.pm.ecommerce.order_service.services.IUserService;
 import com.pm.ecommerce.order_service.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.pm.ecommerce.order_service.interfaces;
+package com.pm.ecommerce.order_service.services;
 
 import com.pm.ecommerce.entities.Vendor;
 

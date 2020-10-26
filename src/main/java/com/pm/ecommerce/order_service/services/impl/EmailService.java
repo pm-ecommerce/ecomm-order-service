@@ -1,12 +1,12 @@
-package com.pm.ecommerce.order_service.services;
+package com.pm.ecommerce.order_service.services.impl;
 
-import com.pm.ecommerce.order_service.interfaces.IEmailService;
+import com.pm.ecommerce.order_service.services.IEmailService;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService implements IEmailService {
     @Override
     public void sendNotification(String to, String body){
-        System.out.println("test email sent");
+        System.out.println("sent email test");
     }
 }
