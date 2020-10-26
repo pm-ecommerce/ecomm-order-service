@@ -1,4 +1,4 @@
-package com.pm.ecommerce.order_service.controllers;
+package com.pm.ecommerce.order_service.model;
 
 import com.pm.ecommerce.entities.Cart;
 import com.pm.ecommerce.entities.CartItem;
