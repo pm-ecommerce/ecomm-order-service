@@ -60,11 +60,9 @@ public class OrderService implements IOrderService {
         order.setUser(user);
         order.setStatus(RECEIVED);
 
-        //calcuateTax
         Double tax = 1.0;
         order.setTax(tax);
 
-//        String userDeliveryEmail = cart.getUser().getEmail();
         String userDeliveryEmail = user.getEmail();
 
         List<OrderItem> orderItemList = new ArrayList<>();
@@ -152,5 +150,4 @@ public class OrderService implements IOrderService {
         }
         return order;
     }
-
 }

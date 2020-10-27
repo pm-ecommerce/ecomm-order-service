@@ -22,7 +22,6 @@ public class OrderController {
     @Autowired
     private IOrderService orderService;
 
-
     @RequestMapping ("/checkout_order")
     public ResponseEntity<ApiResponse<Order>> checkoutOrder(@RequestBody OrderInput postData){
         ApiResponse<Order> response = new ApiResponse<>();
@@ -72,12 +71,6 @@ public class OrderController {
 
         try {
             Order order = orderService.findById(orderId);
-
-            // next update this part
-            order.setBillingAddress(null);
-            order.setStatus(null);
-            order.setCreatedDate(null);
-            order.setUpdatedDate(null);
 
             response.setData(order);
             response.setMessage("Get order by id");
