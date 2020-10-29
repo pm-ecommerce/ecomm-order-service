@@ -1,83 +1,113 @@
 package com.pm.ecommerce.order_service.services.impl;
 
 import com.pm.ecommerce.entities.*;
-import com.pm.ecommerce.order_service.model.Charge;
+import com.pm.ecommerce.enums.OrderItemStatus;
+import com.pm.ecommerce.enums.OrderStatus;
+import com.pm.ecommerce.enums.ProductStatus;
+import com.pm.ecommerce.enums.VendorStatus;
+import com.pm.ecommerce.order_service.config.NewOrderEvent;
+import com.pm.ecommerce.order_service.config.NewScheduledDeliveryEvent;
+import com.pm.ecommerce.order_service.model.ChargeModel;
 import com.pm.ecommerce.order_service.model.OrderInput;
 import com.pm.ecommerce.order_service.repositories.*;
-import com.pm.ecommerce.order_service.services.*;
+import com.pm.ecommerce.order_service.services.IAddressService;
+import com.pm.ecommerce.order_service.services.IOrderService;
+import com.stripe.Stripe;
+import com.stripe.model.Charge;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.pm.ecommerce.enums.OrderStatus.RECEIVED;
-
 @Service
 public class OrderService implements IOrderService {
+    @Value("stripe.apiKey:sk_test_I8Ora3L8Af2oo9fgBykDOAxj")
+    private String apiKey;
 
     @Autowired
     private OrderRepository orderRepository;
+
     @Autowired
-    private IOrderService orderService;
+    private CardRepository cardRepository;
+
+    @Autowired
+    private DeliveryAddressRepository deliveryAddressRepository;
+
     @Autowired
     private IAddressService addressService;
-    @Autowired
-    private IUserService userService;
-    @Autowired
-    private IVendorService vendorService;
-    @Autowired
-    private IEmailService emailService;
-    @Autowired
-    private ProductService productService;
+
     @Autowired
     private CartRepository cartRepository;
+
     @Autowired
     private ScheduledDeliveryRepository scheduledDeliveryRepository;
-    @Autowired
-    private OrderItemRepository orderItemRepository;
+
     @Autowired
     private TransactionRepository transactionRepository;
-    @Autowired
-    private CartItemRepository cartItemRepository;
 
     @Autowired
-    private ICartItemService cartItemService;
+    private ApplicationEventPublisher publisher;
 
+    public Order checkoutOrder(OrderInput orderInput) throws Exception {
+        Cart cart = cartRepository.findBySessionId(orderInput.getSessionId()).orElse(null);
+        if (cart == null) {
+            throw new Exception("Cart Not Found");
+        }
 
-    public Order checkout_order(OrderInput orderInput) throws Exception {
+        User user = cart.getUser();
 
-        Cart cart = cartRepository.findById(orderInput.getId()).orElse(null);
-        if(cart == null) throw new Exception("Cart Not Found");
+        // verify the cart
+        Set<CartItem> cartItems = cart.getCartItems();
 
-        ApiResponse<Order> response = new ApiResponse<>();
+        // verify cart items
+        for (CartItem item : cartItems) {
+            verifyCartItem(item);
+        }
+
+        //verify cards
+        for (ChargeModel charge : orderInput.getCharges()) {
+            int cardId = charge.getCardId();
+            Card card = cardRepository.findById(cardId).orElse(null);
+            verifyCard(card, cart);
+        }
+
+        Address billingAddress = addressService.findById(orderInput.getBillingAddressId());
+
+        // verify delivery address
+        Address shippingAddress = addressService.findById(orderInput.getShippingAddressId());
+        for (Address address : user.getAddresses()) {
+            if (address.getId() != shippingAddress.getId()) {
+                // TODO: uncomment after testing
+                // throw new Exception("Address not found in your address book");
+            }
+        }
+
+        // charge the cards
+        List<Transaction> transactions = new LinkedList<>();
+        for (ChargeModel charge : orderInput.getCharges()) {
+            Transaction transaction = chargeCard(charge.getCardId(), charge.getAmount());
+            transactions.add(transaction);
+        }
+
+        //validate if the total amount paid is equal to the required order total
 
         Order order = new Order();
-        Address billingAddress = addressService.findById(orderInput.getBillingAddressId());
-        Address shippingAddress = addressService.findById(orderInput.getShippingAddressId());
 
         order.setBillingAddress(billingAddress);
         order.setShippingAddress(shippingAddress);
-
-        User user = userService.findById(cart.getUser().getId());
+        order.setTransactions(transactions);
         order.setUser(user);
-        order.setStatus(RECEIVED);
-
-        double tax = 1.0;
-        order.setTax(tax);
-
-        String userDeliveryEmail = user.getEmail();
+        order.setStatus(OrderStatus.RECEIVED);
+        order.setTax(getTax(cart));
 
         List<OrderItem> orderItemList = new ArrayList<>();
         for (CartItem cartItem : cart.getCartItems()) {
             OrderItem orderItem = new OrderItem();
-
             orderItem.setProduct(cartItem.getProduct());
-            Vendor vendor = cartItem.getProduct().getVendor();
             List<OrderItemAttribute> orderItemAttributeArrayList = cartItem.getAttributes().stream()
                     .map(e -> {
                         OrderItemAttribute attribute = new OrderItemAttribute();
@@ -86,100 +116,146 @@ public class OrderService implements IOrderService {
                         return attribute;
                     }).collect(Collectors.toList());
             orderItem.setAttributes(orderItemAttributeArrayList);
-            orderItem.setQuantity(cartItem.getQuantity()); // ch2
+            orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setRate(cartItem.getRate());
-
-            //order.setItems(Arrays.asList(orderItem));
-            //scheduleDeliver(vendor, new Timestamp(orderInput.getDeliveryDate()), shippingAddress.getId()/*shippingAddressId*/);
             orderItemList.add(orderItem);
-
         }
+        order.setItems(orderItemList);
+        order.setCreatedDate(new Timestamp(System.currentTimeMillis()));
 
-        for(Charge charge : orderInput.getCharges()){
-            int cardId = charge.getCardId();
-            double amount = charge.getAmount();
+        orderRepository.save(order);
 
-        }
+        //create a delivery address
+        DeliveryAddress address = getDeliveryAddress(orderInput, shippingAddress, user);
 
-        response.setData(order);
-        response.setMessage("Order registered successfully.");
-        emailService.sendNotification(userDeliveryEmail, "Order successfully placed");
-        return orderService.registerOrder(order);
-    }
+        scheduleDeliver(address, order);
 
-    @Override
-    public Boolean checkTotalAmountCart(double totalAmount, int userId, OrderInput orderInput) {
-        Optional<Cart> total_amount = cartRepository.findById(orderInput.getId());
-        if (total_amount.equals(totalAmount)) {
-            return true;
-        }
-        System.out.print("Error from request " + total_amount + " --db-- " + totalAmount);
-        return false;
-    }
+        // TODO: delete cart for the selected session id
 
-    @Override
-    public List<CartItem> saveProductsForCheckout(List<CartItem> cartItemList) throws Exception {
-        try {
-            int user_id = cartItemList.get(0).getId();
-            if (cartItemList.size() > 0) {
-                cartItemRepository.saveAll(cartItemList);
-
-//                this.removeAllCartByUserId(user_id);
-//                return this.getAllCheckoutByUserId(user_id);
-            } else {
-                throw new Exception("Should not be empty");
-            }
-        } catch (Exception e) {
-            throw new Exception("Error while checkout " + e.getMessage());
-        }
-        return null;
-    }
-
-    private void scheduleDeliver(Vendor vendor, Timestamp deliveryDate, Integer deliveryAddressId) {
-        ScheduledDelivery scheduledDelivery = new ScheduledDelivery();
-        DeliveryAddress deliveryAddress = new DeliveryAddress();
-        Address address = addressService.findById(deliveryAddressId);
-        deliveryAddress.setAddress1(address.getAddress1());
-        deliveryAddress.setCity(address.getCity());
-        deliveryAddress.setState(address.getState());
-        deliveryAddress.setZipcode(address.getZipcode());
-        deliveryAddress.setCountry(address.getCountry());
-        //set receiver, phone and email,
-        scheduledDelivery.setAddress(deliveryAddress);
-        scheduledDelivery.setDeliveryDate(deliveryDate);
-        scheduledDelivery.setVendor(vendor);
-
-        scheduledDeliveryRepository.save(scheduledDelivery);
-    }
-
-    public Order registerOrder(Order order) {
-        if (order != null) {
-            order.setCreatedDate(new Timestamp(System.currentTimeMillis()));
-            order.setUpdatedDate(new Timestamp(System.currentTimeMillis()));
-        }
-        return orderRepository.save(order);
-    }
-
-
-    public int getOrderId() {
-        Random r = new Random(System.currentTimeMillis());
-        return 10000 + r.nextInt(20000);
-    }
-
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
-    }
-
-    @Override
-    public Order findById(int orderId) {
-        Optional<Order> result = orderRepository.findById(orderId);
-
-        Order order = null;
-        if (result.isPresent()) {
-            order = result.get();
-        } else {
-            throw new RuntimeException("Did not find order id - " + orderId);
-        }
         return order;
+    }
+
+    private void scheduleDeliver(DeliveryAddress address, Order order) {
+        // group order items by vendor
+        Map<Integer, List<OrderItem>> map = new HashMap<>();
+        Map<Integer, Vendor> vendorMap = new HashMap<>();
+        for (OrderItem item : order.getItems()) {
+            int vendorId = item.getProduct().getVendor().getId();
+            if (!map.containsKey(vendorId)) {
+                map.put(vendorId, new LinkedList<>());
+            }
+
+            if (!vendorMap.containsKey(vendorId)) {
+                vendorMap.put(vendorId, item.getProduct().getVendor());
+            }
+
+            map.get(vendorId).add(item);
+        }
+
+        for (int vendorId : map.keySet()) {
+            ScheduledDelivery delivery = new ScheduledDelivery();
+            delivery.setAddress(address);
+            delivery.setItems(map.get(vendorId));
+            delivery.setVendor(vendorMap.get(vendorId));
+            delivery.setDeliveryDate(new Timestamp(System.currentTimeMillis()));
+            delivery.setStatus(OrderItemStatus.RECEIVED);
+            scheduledDeliveryRepository.save(delivery);
+            //send an email to the vendor here
+            publisher.publishEvent(new NewScheduledDeliveryEvent(this, delivery));
+        }
+
+        //send an email to the user
+        publisher.publishEvent(new NewOrderEvent(this, order));
+    }
+
+    private DeliveryAddress getDeliveryAddress(OrderInput input, Address address, User user) {
+        DeliveryAddress address1 = new DeliveryAddress();
+
+        if (input.getReceiverEmail() == null) {
+            address1.setEmail(user.getEmail());
+        } else {
+            address1.setEmail(input.getReceiverEmail());
+        }
+
+        if (input.getReceiverName() == null) {
+            address1.setReceiver(user.getName());
+        } else {
+            address1.setReceiver(input.getReceiverName());
+        }
+
+        address1.setPhone(input.getReceiverPhone());
+        address1.setAddress1(address.getAddress1());
+        address1.setAddress2(address.getAddress2());
+        address1.setCity(address.getCity());
+        address1.setZipcode(address.getZipcode());
+        address1.setState(address.getState());
+        address1.setCountry(address.getCountry());
+
+        return deliveryAddressRepository.save(address1);
+    }
+
+    private void verifyCartItem(CartItem item) throws Exception {
+        if (item == null) {
+            throw new Exception("Cart item is empty.");
+        }
+
+        Product product = item.getProduct();
+        if (product == null || product.getStatus() != ProductStatus.PUBLISHED) {
+            throw new Exception("Product not found");
+        }
+
+        Vendor vendor = product.getVendor();
+        if (vendor == null || vendor.getStatus() != VendorStatus.APPROVED) {
+            throw new Exception("Product vendor has not been approved yet.");
+        }
+
+        Category category = product.getCategory();
+        if (category == null || category.isDeleted()) {
+            throw new Exception("Cartegory does not exist.");
+        }
+    }
+
+    private void verifyCard(Card card, Cart cart) throws Exception {
+        if (card == null) {
+            throw new Exception("Card not found");
+        }
+
+        if (card.getUser().getId() != cart.getUser().getId()) {
+            throw new Exception("Card ending with " + card.getLast4() + " does not belong to you.");
+        }
+    }
+
+    private Transaction chargeCard(int cardId, double amount) throws Exception {
+        Card card = cardRepository.findById(cardId).orElse(null);
+        if (card == null) {
+            throw new Exception("Card not found");
+        }
+//        Stripe.apiKey = apiKey;
+        Stripe.apiKey = "sk_test_I8Ora3L8Af2oo9fgBykDOAxj";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("amount", (int) amount * 100);
+        params.put("currency", "usd");
+        params.put("customer", card.getCustomerId());
+        params.put("description", "My First Test Charge (created for API docs)");
+
+        Charge charge = Charge.create(params);
+        StripeTransaction transaction = new StripeTransaction();
+        transaction.setCard(card);
+        transaction.setAmount(amount);
+
+        transaction.setChargeId(charge.getId());
+        transactionRepository.save(transaction);
+
+        return transaction;
+    }
+
+    private double getTax(Cart cart) {
+        double total = 0;
+        for (CartItem item : cart.getCartItems()) {
+            total += item.getQuantity() * item.getRate();
+        }
+
+        return (total * 7) / 100;
     }
 }

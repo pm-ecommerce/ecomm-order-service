@@ -84,6 +84,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>20.21.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit-dep</artifactId>
             <version>4.8.2</version>
