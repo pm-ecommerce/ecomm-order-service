@@ -21,13 +21,13 @@ public class OrderItemController {
     public ResponseEntity<ApiResponse<OrderItem>> registerOrderItem(@RequestBody OrderItem postData){
         ApiResponse<OrderItem> response = new ApiResponse<>();
         try {
-            OrderItem orderItem = orderItemsService.registerOrder(postData);
+//            OrderItem orderItem = orderItemsService.registerOrderItem(postData);
 
             // next update this part
-            orderItem.setProduct(null);
-            orderItem.setAttributes(null);
-
-            response.setData(orderItem);
+//            orderItem.setProduct(null);
+//            orderItem.setAttributes(null);
+//
+//            response.setData(orderItem);
             response.setMessage("Order item registered successfully.");
         } catch (Exception e) {
             response.setStatus(500);

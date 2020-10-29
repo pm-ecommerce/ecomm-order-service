@@ -8,10 +8,10 @@ import java.util.List;
 
 @Data
 public class OrderInput {
-    private List<CartItem> cartItems;
     private int id;
     private Integer shippingAddressId;
     private Integer billingAddressId;
     private Integer deliveryDate;
+    List<Charge> charges;
 
 }
