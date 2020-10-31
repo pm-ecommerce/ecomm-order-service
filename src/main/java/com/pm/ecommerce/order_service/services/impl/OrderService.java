@@ -52,6 +52,9 @@ public class OrderService implements IOrderService {
     @Autowired
     private ApplicationEventPublisher publisher;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     public Order checkoutOrder(OrderInput orderInput) throws Exception {
         Cart cart = cartRepository.findBySessionId(orderInput.getSessionId()).orElse(null);
         if (cart == null) {
@@ -135,6 +138,61 @@ public class OrderService implements IOrderService {
         return order;
     }
 
+
+    // TODO: API to get user orders; Scheduled deliveries
+    public List<ScheduledDelivery> getUserOrders(int userId) {
+
+        List<ScheduledDelivery> scheduledDeliveries = new ArrayList<>();
+
+        Optional<Account> account = accountRepository.findById(userId);
+        User user = new User();
+        ScheduledDelivery scheduledDelivery = new ScheduledDelivery();
+        OrderInput orderInput = new OrderInput();
+        Order order = new Order();
+
+        DeliveryAddress deliveryAddress = new DeliveryAddress();
+
+//        scheduledDelivery.setId(order.getUser().getId());
+        scheduledDelivery.setId(userId);
+        scheduledDelivery.setItems(order.getItems());
+        scheduledDelivery.setStatus(OrderItemStatus.DELIVERED);
+        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
+        scheduledDelivery.setDeliveryDate(new Timestamp(System.currentTimeMillis()));
+        scheduledDelivery.setDeliveredDate(new Timestamp(System.currentTimeMillis()));
+        scheduledDelivery.setAddress(deliveryAddress);
+        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
+
+        scheduledDeliveries.add(scheduledDelivery);
+        return scheduledDeliveries;
+    }
+
+    // TODO: API to get vendor orders; Scheduled deliveries
+    public List<ScheduledDelivery> getVendorOrders(int vendorId) {
+
+        List<ScheduledDelivery> scheduledDeliveries = new ArrayList<>();
+
+        Optional<Account> account = accountRepository.findById(vendorId);
+        User user = new User();
+        ScheduledDelivery scheduledDelivery = new ScheduledDelivery();
+        Vendor vendor = new Vendor();
+        Order order = new Order();
+
+        DeliveryAddress deliveryAddress = new DeliveryAddress();
+
+        scheduledDelivery.setId(vendorId);
+        scheduledDelivery.setItems(order.getItems());
+        scheduledDelivery.setStatus(OrderItemStatus.DELIVERED);
+        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
+        scheduledDelivery.setDeliveryDate(new Timestamp(System.currentTimeMillis()));
+        scheduledDelivery.setDeliveredDate(new Timestamp(System.currentTimeMillis()));
+        scheduledDelivery.setAddress(deliveryAddress);
+//        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
+        scheduledDelivery.setVendor(vendor);
+
+        scheduledDeliveries.add(scheduledDelivery);
+        return scheduledDeliveries;
+    }
+
     private void scheduleDeliver(DeliveryAddress address, Order order) {
         // group order items by vendor
         Map<Integer, List<OrderItem>> map = new HashMap<>();
@@ -211,7 +269,7 @@ public class OrderService implements IOrderService {
 
         Category category = product.getCategory();
         if (category == null || category.isDeleted()) {
-            throw new Exception("Cartegory does not exist.");
+            throw new Exception("Category does not exist.");
         }
     }
 
@@ -255,7 +313,7 @@ public class OrderService implements IOrderService {
         for (CartItem item : cart.getCartItems()) {
             total += item.getQuantity() * item.getRate();
         }
-
         return (total * 7) / 100;
     }
+
 }

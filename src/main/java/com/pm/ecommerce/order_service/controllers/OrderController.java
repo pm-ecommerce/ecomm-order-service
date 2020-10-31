@@ -2,6 +2,7 @@ package com.pm.ecommerce.order_service.controllers;
 
 import com.pm.ecommerce.entities.ApiResponse;
 import com.pm.ecommerce.entities.Order;
+import com.pm.ecommerce.entities.ScheduledDelivery;
 import com.pm.ecommerce.order_service.model.OrderInput;
 import com.pm.ecommerce.order_service.services.IOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,16 +38,37 @@ public class OrderController {
 
     //dont return order, return scheduled deliveries
     @GetMapping("users/{userId}")
-    public List<Order> getAllUserOrders() {
-        return null;
-//        return orderService.getAllOrders();
+    public ResponseEntity<ApiResponse<List<ScheduledDelivery>>> getUsersOrders(@PathVariable int userId) {
+        ApiResponse<List<ScheduledDelivery>> response = new ApiResponse<>();
+
+        try {
+            List<ScheduledDelivery> scheduledDelivery = orderService.getUserOrders(userId); // do it here
+            response.setData(scheduledDelivery);
+            response.setMessage("Api to get orders successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("vendors/{userId}")
+
+    @GetMapping("vendors/{vendorId}")
     //dont return order, return scheduled deliveries
-    public List<Order> getAllVendorsOrders() {
-        return null;
-//        return orderService.getAllOrders();
+    public ResponseEntity<ApiResponse<List<ScheduledDelivery>>> getVendorsOrders(@PathVariable int vendorId) {
+        ApiResponse<List<ScheduledDelivery>> response = new ApiResponse<>();
+
+        try {
+            List<ScheduledDelivery> scheduledDelivery = orderService.getVendorOrders(vendorId); // do it here
+            response.setData(scheduledDelivery);
+            response.setMessage("API to vendor orders successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{orderId}")
@@ -66,5 +88,4 @@ public class OrderController {
         }
         return ResponseEntity.ok(response);
     }
-
 }
