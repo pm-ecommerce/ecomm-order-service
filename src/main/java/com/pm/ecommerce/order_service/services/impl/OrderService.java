@@ -7,6 +7,7 @@ import com.pm.ecommerce.enums.ProductStatus;
 import com.pm.ecommerce.enums.VendorStatus;
 import com.pm.ecommerce.order_service.config.NewOrderEvent;
 import com.pm.ecommerce.order_service.config.NewScheduledDeliveryEvent;
+import com.pm.ecommerce.order_service.model.CartItemResponse;
 import com.pm.ecommerce.order_service.model.ChargeModel;
 import com.pm.ecommerce.order_service.model.OrderInput;
 import com.pm.ecommerce.order_service.repositories.*;
@@ -133,11 +134,8 @@ public class OrderService implements IOrderService {
 
         scheduleDeliver(address, order);
 
-        // TODO: delete cart for the selected session id
-
         return order;
     }
-
 
     // TODO: API to get user orders; Scheduled deliveries
     public List<ScheduledDelivery> getUserOrders(int userId) {
@@ -191,6 +189,30 @@ public class OrderService implements IOrderService {
 
         scheduledDeliveries.add(scheduledDelivery);
         return scheduledDeliveries;
+    }
+
+    // TODO: delete cart for the selected session id
+    @Override
+    public CartItemResponse deleteCartItem(int cartItemId, String sessionId) throws Exception {
+        Cart cart = cartRepository.findBySessionId(sessionId).orElse(null);
+        if (cart == null) {
+            throw new Exception("Cart not found");
+        }
+
+        CartItem item = cart.getCartItems().stream().reduce(null, (a, b) -> b.getId() == cartItemId ? b : a);
+        if (item == null) {
+            throw new Exception("Cart item not found");
+        }
+
+        Set<CartItem> cartItems = cart.getCartItems();
+        cartItems.remove(item);
+        cartRepository.save(cart);
+
+        User user = cart.getUser();
+        if (user == null) {
+            return new CartItemResponse(item);
+        }
+        return new CartItemResponse(item, user.getId());
     }
 
     private void scheduleDeliver(DeliveryAddress address, Order order) {

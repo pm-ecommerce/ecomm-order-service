@@ -3,6 +3,7 @@ package com.pm.ecommerce.order_service.controllers;
 import com.pm.ecommerce.entities.ApiResponse;
 import com.pm.ecommerce.entities.Order;
 import com.pm.ecommerce.entities.ScheduledDelivery;
+import com.pm.ecommerce.order_service.model.CartItemResponse;
 import com.pm.ecommerce.order_service.model.OrderInput;
 import com.pm.ecommerce.order_service.services.IOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,22 @@ public class OrderController {
             response.setStatus(500);
             response.setMessage(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+
+    @DeleteMapping("{sessionId}/{cartItemId}")
+    public ResponseEntity<ApiResponse<CartItemResponse>> deleteCartItem(@PathVariable String sessionId, @PathVariable int cartItemId){
+        ApiResponse<CartItemResponse> response = new ApiResponse<>();
+        try{
+            CartItemResponse carItemResponse = orderService.deleteCartItem(cartItemId, sessionId);
+            response.setData(carItemResponse);
+            response.setMessage("Cart Item deleted!");
+        } catch(Exception e){
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
         return ResponseEntity.ok(response);
     }
