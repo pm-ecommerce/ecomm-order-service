@@ -7,9 +7,7 @@ import com.pm.ecommerce.enums.ProductStatus;
 import com.pm.ecommerce.enums.VendorStatus;
 import com.pm.ecommerce.order_service.config.NewOrderEvent;
 import com.pm.ecommerce.order_service.config.NewScheduledDeliveryEvent;
-import com.pm.ecommerce.order_service.model.CartItemResponse;
-import com.pm.ecommerce.order_service.model.ChargeModel;
-import com.pm.ecommerce.order_service.model.OrderInput;
+import com.pm.ecommerce.order_service.model.*;
 import com.pm.ecommerce.order_service.repositories.*;
 import com.pm.ecommerce.order_service.services.IAddressService;
 import com.pm.ecommerce.order_service.services.IOrderService;
@@ -18,6 +16,9 @@ import com.stripe.model.Charge;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -55,6 +56,15 @@ public class OrderService implements IOrderService {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private VendorRepository vendorRepository;
 
     public Order checkoutOrder(OrderInput orderInput) throws Exception {
         Cart cart = cartRepository.findBySessionId(orderInput.getSessionId()).orElse(null);
@@ -137,58 +147,58 @@ public class OrderService implements IOrderService {
         return order;
     }
 
-    // TODO: API to get user orders; Scheduled deliveries
-    public List<ScheduledDelivery> getUserOrders(int userId) {
+    // TODO: API to get user orders; Scheduled deliveries =====
+    public PagedResponse<ScheduledDeliveryResponse> getUserOrders(int userId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
 
-        List<ScheduledDelivery> scheduledDeliveries = new ArrayList<>();
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            throw new Exception("User is not found");
+        }
 
-        Optional<Account> account = accountRepository.findById(userId);
-        User user = new User();
-        ScheduledDelivery scheduledDelivery = new ScheduledDelivery();
-        OrderInput orderInput = new OrderInput();
-        Order order = new Order();
+        if (pageNum < 1) {
+            throw new Exception("Page number is invalid.");
+        }
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        List<OrderItemStatus> statusList = new ArrayList<>();
+        if (loadActive) {
+            statusList.add(OrderItemStatus.RECEIVED);
+            statusList.add(OrderItemStatus.IN_PROGRESS);
+            statusList.add(OrderItemStatus.SHIPPED);
+        } else {
+            statusList.add(OrderItemStatus.DELIVERED);
+        }
 
-        DeliveryAddress deliveryAddress = new DeliveryAddress();
-
-//        scheduledDelivery.setId(order.getUser().getId());
-        scheduledDelivery.setId(userId);
-        scheduledDelivery.setItems(order.getItems());
-        scheduledDelivery.setStatus(OrderItemStatus.DELIVERED);
-        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
-        scheduledDelivery.setDeliveryDate(new Timestamp(System.currentTimeMillis()));
-        scheduledDelivery.setDeliveredDate(new Timestamp(System.currentTimeMillis()));
-        scheduledDelivery.setAddress(deliveryAddress);
-        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
-
-        scheduledDeliveries.add(scheduledDelivery);
-        return scheduledDeliveries;
+        Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByUserIdAndStatusIn(userId, statusList, paging);
+        int totalPages = pagedResult.getTotalPages();
+        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream().map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+        return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
 
     // TODO: API to get vendor orders; Scheduled deliveries
-    public List<ScheduledDelivery> getVendorOrders(int vendorId) {
+    public PagedResponse<ScheduledDeliveryResponse> getVendorOrders(int vendorId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
 
-        List<ScheduledDelivery> scheduledDeliveries = new ArrayList<>();
+        Vendor vendor = vendorRepository.findById(vendorId).orElse(null);
+        if (vendor == null) {
+            throw new Exception("Vendor is not found");
+        }
 
-        Optional<Account> account = accountRepository.findById(vendorId);
-        User user = new User();
-        ScheduledDelivery scheduledDelivery = new ScheduledDelivery();
-        Vendor vendor = new Vendor();
-        Order order = new Order();
+        if (pageNum < 1) {
+            throw new Exception("Page number is invalid.");
+        }
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        List<OrderItemStatus> statusList = new ArrayList<>();
+        if (loadActive) {
+            statusList.add(OrderItemStatus.RECEIVED);
+            statusList.add(OrderItemStatus.IN_PROGRESS);
+            statusList.add(OrderItemStatus.SHIPPED);
+        } else {
+            statusList.add(OrderItemStatus.DELIVERED);
+        }
 
-        DeliveryAddress deliveryAddress = new DeliveryAddress();
-
-        scheduledDelivery.setId(vendorId);
-        scheduledDelivery.setItems(order.getItems());
-        scheduledDelivery.setStatus(OrderItemStatus.DELIVERED);
-        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
-        scheduledDelivery.setDeliveryDate(new Timestamp(System.currentTimeMillis()));
-        scheduledDelivery.setDeliveredDate(new Timestamp(System.currentTimeMillis()));
-        scheduledDelivery.setAddress(deliveryAddress);
-//        scheduledDelivery.setVendor(scheduledDelivery.getVendor());
-        scheduledDelivery.setVendor(vendor);
-
-        scheduledDeliveries.add(scheduledDelivery);
-        return scheduledDeliveries;
+        Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByVendorIdAndStatusIn(vendorId, statusList, paging);
+        int totalPages = pagedResult.getTotalPages();
+        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream().map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+        return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
 
     // TODO: delete cart for the selected session id
@@ -206,8 +216,7 @@ public class OrderService implements IOrderService {
 
         Set<CartItem> cartItems = cart.getCartItems();
         cartItems.remove(item);
-        cartRepository.save(cart);
-
+        cartRepository.delete(cart);
         User user = cart.getUser();
         if (user == null) {
             return new CartItemResponse(item);
@@ -239,6 +248,7 @@ public class OrderService implements IOrderService {
             delivery.setVendor(vendorMap.get(vendorId));
             delivery.setDeliveryDate(new Timestamp(System.currentTimeMillis()));
             delivery.setStatus(OrderItemStatus.RECEIVED);
+            delivery.setUser(order.getUser());
             scheduledDeliveryRepository.save(delivery);
             //send an email to the vendor here
             publisher.publishEvent(new NewScheduledDeliveryEvent(this, delivery));

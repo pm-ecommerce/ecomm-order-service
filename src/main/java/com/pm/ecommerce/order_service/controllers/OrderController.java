@@ -5,6 +5,8 @@ import com.pm.ecommerce.entities.Order;
 import com.pm.ecommerce.entities.ScheduledDelivery;
 import com.pm.ecommerce.order_service.model.CartItemResponse;
 import com.pm.ecommerce.order_service.model.OrderInput;
+import com.pm.ecommerce.order_service.model.PagedResponse;
+import com.pm.ecommerce.order_service.model.ScheduledDeliveryResponse;
 import com.pm.ecommerce.order_service.services.IOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,12 +40,50 @@ public class OrderController {
     }
 
     //dont return order, return scheduled deliveries
-    @GetMapping("users/{userId}")
-    public ResponseEntity<ApiResponse<List<ScheduledDelivery>>> getUsersOrders(@PathVariable int userId) {
-        ApiResponse<List<ScheduledDelivery>> response = new ApiResponse<>();
+    @GetMapping("users/{userId}/active")
+    public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getUsersOrders(@PathVariable int userId,
+                                                                               @RequestParam(name = "page", defaultValue = "1") int page,
+                                                                               @RequestParam(name = "perPage", defaultValue = "20") int itemsPerPage) {
+        ApiResponse<PagedResponse<ScheduledDeliveryResponse>> response = new ApiResponse<>();
 
         try {
-            List<ScheduledDelivery> scheduledDelivery = orderService.getUserOrders(userId); // do it here
+            PagedResponse<ScheduledDeliveryResponse> scheduledDelivery = orderService.getUserOrders(userId, page, itemsPerPage, true) ;
+            response.setData(scheduledDelivery);
+            response.setMessage("Api to get orders successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("users/{userId}/complete")
+    public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getUsersCompleteOrders(@PathVariable int userId,
+                                                                                                @RequestParam(name = "page", defaultValue = "1") int page,
+                                                                                                @RequestParam(name = "perPage", defaultValue = "20") int itemsPerPage) {
+        ApiResponse<PagedResponse<ScheduledDeliveryResponse>> response = new ApiResponse<>();
+
+        try {
+            PagedResponse<ScheduledDeliveryResponse> scheduledDelivery = orderService.getUserOrders(userId, page, itemsPerPage, false) ;
+            response.setData(scheduledDelivery);
+            response.setMessage("Api to get orders successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("vendors/{vendorId}/active")
+    public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getVendorsOrders(@PathVariable int vendorId,
+                                                                                                @RequestParam(name = "page", defaultValue = "1") int page,
+                                                                                                @RequestParam(name = "perPage", defaultValue = "20") int itemsPerPage) {
+        ApiResponse<PagedResponse<ScheduledDeliveryResponse>> response = new ApiResponse<>();
+
+        try {
+            PagedResponse<ScheduledDeliveryResponse> scheduledDelivery = orderService.getVendorOrders(vendorId, page, itemsPerPage, true) ;
             response.setData(scheduledDelivery);
             response.setMessage("Api to get orders successfully.");
         } catch (Exception e) {
@@ -55,15 +95,16 @@ public class OrderController {
     }
 
 
-    @GetMapping("vendors/{vendorId}")
-    //dont return order, return scheduled deliveries
-    public ResponseEntity<ApiResponse<List<ScheduledDelivery>>> getVendorsOrders(@PathVariable int vendorId) {
-        ApiResponse<List<ScheduledDelivery>> response = new ApiResponse<>();
+    @GetMapping("vendors/{vendorId}/complete")
+    public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getVendorsCompleteOrders(@PathVariable int vendorId,
+                                                                                                        @RequestParam(name = "page", defaultValue = "1") int page,
+                                                                                                        @RequestParam(name = "perPage", defaultValue = "20") int itemsPerPage) {
+        ApiResponse<PagedResponse<ScheduledDeliveryResponse>> response = new ApiResponse<>();
 
         try {
-            List<ScheduledDelivery> scheduledDelivery = orderService.getVendorOrders(vendorId); // do it here
+            PagedResponse<ScheduledDeliveryResponse> scheduledDelivery = orderService.getVendorOrders(vendorId, page, itemsPerPage, false) ;
             response.setData(scheduledDelivery);
-            response.setMessage("API to vendor orders successfully.");
+            response.setMessage("Api to get orders successfully.");
         } catch (Exception e) {
             response.setStatus(500);
             response.setMessage(e.getMessage());
@@ -71,6 +112,7 @@ public class OrderController {
         }
         return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponse<Order>> getOrderId(@PathVariable int orderId) {
