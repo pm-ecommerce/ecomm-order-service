@@ -55,19 +55,14 @@ public class OrderService implements IOrderService {
     private ApplicationEventPublisher publisher;
 
     @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private OrderItemRepository orderItemRepository;
 
     @Autowired
     private VendorRepository vendorRepository;
 
     public Order checkoutOrder(OrderInput orderInput) throws Exception {
         Cart cart = cartRepository.findBySessionId(orderInput.getSessionId()).orElse(null);
+
         if (cart == null) {
             throw new Exception("Cart Not Found");
         }
@@ -108,7 +103,6 @@ public class OrderService implements IOrderService {
         }
 
         //validate if the total amount paid is equal to the required order total
-
         Order order = new Order();
 
         order.setBillingAddress(billingAddress);
@@ -141,8 +135,9 @@ public class OrderService implements IOrderService {
 
         //create a delivery address
         DeliveryAddress address = getDeliveryAddress(orderInput, shippingAddress, user);
-
         scheduleDeliver(address, order);
+
+        cartRepository.delete(cart);  // Delete user cart after checkout
 
         return order;
     }
@@ -150,6 +145,7 @@ public class OrderService implements IOrderService {
     // TODO: Create a controller method
     public ScheduledDeliveryResponse updateOrderStatus(int deliveryId, int status) throws Exception {
         ScheduledDelivery delivery = scheduledDeliveryRepository.findById(deliveryId).orElse(null);
+
         if (delivery == null) {
             throw new Exception("Delivery not found");
         }
@@ -166,7 +162,6 @@ public class OrderService implements IOrderService {
         if (status == 4) {
             status1 = OrderItemStatus.CANCELLED;
         }
-
         delivery.setStatus(status1);
         scheduledDeliveryRepository.save(delivery);
 
@@ -189,12 +184,14 @@ public class OrderService implements IOrderService {
             statusList.add(OrderItemStatus.DELIVERED);
             statusList.add(OrderItemStatus.CANCELLED);
         }
-
         Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByStatusIn(statusList, paging);
         int totalPages = pagedResult.getTotalPages();
-        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream().map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream()
+                .map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
         return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
+
+    // ==== end ====
 
     public PagedResponse<ScheduledDeliveryResponse> getUserOrders(int userId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
 
@@ -397,5 +394,6 @@ public class OrderService implements IOrderService {
         }
         return (total * 7) / 100;
     }
+
 
 }

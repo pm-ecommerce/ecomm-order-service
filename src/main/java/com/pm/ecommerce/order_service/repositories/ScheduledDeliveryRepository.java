@@ -17,17 +17,7 @@ import java.util.Optional;
 
 @Repository
 public interface ScheduledDeliveryRepository extends JpaRepository<ScheduledDelivery, Integer> {
-
-//    @Query("Select sd from ScheduledDelivery sd where sd.vendor.id=:vendorId")
-//    List<ScheduledDelivery> findAllByVendor(int vendorId);
-
     Page<ScheduledDelivery> findAllByUserIdAndStatusIn(int userId, List<OrderItemStatus> statusList, Pageable paging);
     Page<ScheduledDelivery> findAllByVendorIdAndStatusIn(int vendorId, List<OrderItemStatus> statusList, Pageable paging);
-
     Page<ScheduledDelivery> findAllByStatusIn(List<OrderItemStatus> statusList, Pageable paging);
-
-
-//    List<ScheduledDelivery> findAllByVendorAndStatusIn(int vendorId, OrderItemStatus status);
-
-
 }

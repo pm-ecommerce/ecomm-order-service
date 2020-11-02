@@ -148,4 +148,58 @@ public class OrderController {
         }
         return ResponseEntity.ok(response);
     }
+
+
+
+    /// ==== Today's task
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getActiveOrders(@RequestParam(name = "page", defaultValue = "1") int page,
+                                                                                                @RequestParam(name = "perPage", defaultValue = "20") int itemsPerPage) {
+        ApiResponse<PagedResponse<ScheduledDeliveryResponse>> response = new ApiResponse<>();
+
+        try {
+            PagedResponse<ScheduledDeliveryResponse> scheduledDelivery = orderService.getActiveOrders(page, itemsPerPage, true);
+            response.setData(scheduledDelivery);
+            response.setMessage("Api to get orders successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/completed")
+    public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getCompletedOrders(@RequestParam(name = "page", defaultValue = "1") int page,
+                                                                                                 @RequestParam(name = "perPage", defaultValue = "20") int itemsPerPage) {
+        ApiResponse<PagedResponse<ScheduledDeliveryResponse>> response = new ApiResponse<>();
+
+        try {
+            PagedResponse<ScheduledDeliveryResponse> scheduledDelivery = orderService.getActiveOrders(page, itemsPerPage, false);
+            response.setData(scheduledDelivery);
+            response.setMessage("Api to get orders successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/updateStatus/{deliveryId}/{status}")
+    public ResponseEntity<ApiResponse<ScheduledDeliveryResponse>> getUpdatedOrderStatus(@PathVariable int deliveryId, @PathVariable int status) throws Exception {
+        ApiResponse<ScheduledDeliveryResponse> response = new ApiResponse<>();
+
+        try {
+            ScheduledDeliveryResponse scheduledDelivery = orderService.updateOrderStatus(deliveryId, status);
+            response.setData(scheduledDelivery);
+            response.setMessage("Api to get orders successfully.");
+        } catch (Exception e) {
+            response.setStatus(500);
+            response.setMessage(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
 }
