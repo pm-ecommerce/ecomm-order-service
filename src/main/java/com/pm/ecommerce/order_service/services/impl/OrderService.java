@@ -147,7 +147,55 @@ public class OrderService implements IOrderService {
         return order;
     }
 
-    // TODO: API to get user orders; Scheduled deliveries =====
+    // TODO: Create a controller method
+    public ScheduledDeliveryResponse updateOrderStatus(int deliveryId, int status) throws Exception {
+        ScheduledDelivery delivery = scheduledDeliveryRepository.findById(deliveryId).orElse(null);
+        if (delivery == null) {
+            throw new Exception("Delivery not found");
+        }
+        OrderItemStatus status1 = OrderItemStatus.RECEIVED;
+        if (status == 1) {
+            status1 = OrderItemStatus.IN_PROGRESS;
+        }
+        if (status == 2) {
+            status1 = OrderItemStatus.SHIPPED;
+        }
+        if (status == 3) {
+            status1 = OrderItemStatus.DELIVERED;
+        }
+        if (status == 4) {
+            status1 = OrderItemStatus.CANCELLED;
+        }
+
+        delivery.setStatus(status1);
+        scheduledDeliveryRepository.save(delivery);
+
+        return new ScheduledDeliveryResponse(delivery);
+    }
+
+    // API for admin module
+    // TODO: create a controller for this method
+    public PagedResponse<ScheduledDeliveryResponse> getActiveOrders(int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
+        if (pageNum < 1) {
+            throw new Exception("Page number is invalid.");
+        }
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        List<OrderItemStatus> statusList = new ArrayList<>();
+        if (loadActive) {
+            statusList.add(OrderItemStatus.RECEIVED);
+            statusList.add(OrderItemStatus.IN_PROGRESS);
+            statusList.add(OrderItemStatus.SHIPPED);
+        } else {
+            statusList.add(OrderItemStatus.DELIVERED);
+            statusList.add(OrderItemStatus.CANCELLED);
+        }
+
+        Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByStatusIn(statusList, paging);
+        int totalPages = pagedResult.getTotalPages();
+        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream().map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+        return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
+    }
+
     public PagedResponse<ScheduledDeliveryResponse> getUserOrders(int userId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
 
         User user = userRepository.findById(userId).orElse(null);
@@ -166,6 +214,7 @@ public class OrderService implements IOrderService {
             statusList.add(OrderItemStatus.SHIPPED);
         } else {
             statusList.add(OrderItemStatus.DELIVERED);
+            statusList.add(OrderItemStatus.CANCELLED);
         }
 
         Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByUserIdAndStatusIn(userId, statusList, paging);
@@ -193,6 +242,7 @@ public class OrderService implements IOrderService {
             statusList.add(OrderItemStatus.SHIPPED);
         } else {
             statusList.add(OrderItemStatus.DELIVERED);
+            statusList.add(OrderItemStatus.CANCELLED);
         }
 
         Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByVendorIdAndStatusIn(vendorId, statusList, paging);

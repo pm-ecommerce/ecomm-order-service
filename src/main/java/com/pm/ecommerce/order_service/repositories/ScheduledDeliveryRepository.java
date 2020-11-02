@@ -24,6 +24,8 @@ public interface ScheduledDeliveryRepository extends JpaRepository<ScheduledDeli
     Page<ScheduledDelivery> findAllByUserIdAndStatusIn(int userId, List<OrderItemStatus> statusList, Pageable paging);
     Page<ScheduledDelivery> findAllByVendorIdAndStatusIn(int vendorId, List<OrderItemStatus> statusList, Pageable paging);
 
+    Page<ScheduledDelivery> findAllByStatusIn(List<OrderItemStatus> statusList, Pageable paging);
+
 
 //    List<ScheduledDelivery> findAllByVendorAndStatusIn(int vendorId, OrderItemStatus status);
 
