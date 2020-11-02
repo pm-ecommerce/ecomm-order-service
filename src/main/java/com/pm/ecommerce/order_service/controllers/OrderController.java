@@ -37,7 +37,6 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
-    //dont return order, return scheduled deliveries
     @GetMapping("users/{userId}/active")
     public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getUsersOrders(@PathVariable int userId,
                                                                                                 @RequestParam(name = "page", defaultValue = "1") int page,
@@ -183,7 +182,7 @@ public class OrderController {
     }
 
     @GetMapping("/updateStatus/{deliveryId}/{status}")
-    public ResponseEntity<ApiResponse<ScheduledDeliveryResponse>> getUpdatedOrderStatus(@PathVariable int deliveryId, @PathVariable int status) throws Exception {
+    public ResponseEntity<ApiResponse<ScheduledDeliveryResponse>> getUpdatedOrderStatus(@PathVariable int deliveryId, @PathVariable int status) {
         ApiResponse<ScheduledDeliveryResponse> response = new ApiResponse<>();
 
         try {

@@ -147,7 +147,6 @@ public class OrderService implements IOrderService {
         return order;
     }
 
-    // TODO: Create a controller method
     public ScheduledDeliveryResponse updateOrderStatus(int deliveryId, int status) throws Exception {
         ScheduledDelivery delivery = scheduledDeliveryRepository.findById(deliveryId).orElse(null);
 
@@ -197,7 +196,6 @@ public class OrderService implements IOrderService {
     }
 
     // API for admin module
-    // TODO: create a controller for this method
     public PagedResponse<ScheduledDeliveryResponse> getActiveOrders(int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
         if (pageNum < 1) {
             throw new Exception("Page number is invalid.");
@@ -249,7 +247,6 @@ public class OrderService implements IOrderService {
         return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
 
-    // TODO: API to get vendor orders; Scheduled deliveries
     public PagedResponse<ScheduledDeliveryResponse> getVendorOrders(int vendorId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
 
         Vendor vendor = vendorRepository.findById(vendorId).orElse(null);
@@ -277,7 +274,6 @@ public class OrderService implements IOrderService {
         return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
 
-    // TODO: delete cart for the selected session id
     @Override
     public CartItemResponse deleteCartItem(int cartItemId, String sessionId) throws Exception {
         Cart cart = cartRepository.findBySessionId(sessionId).orElse(null);
@@ -396,8 +392,8 @@ public class OrderService implements IOrderService {
         if (card == null) {
             throw new Exception("Card not found");
         }
-//        Stripe.apiKey = apiKey;
-        Stripe.apiKey = "sk_test_I8Ora3L8Af2oo9fgBykDOAxj";
+
+        Stripe.apiKey = apiKey;
 
         Map<String, Object> params = new HashMap<>();
         params.put("amount", (int) amount * 100);
@@ -421,7 +417,7 @@ public class OrderService implements IOrderService {
         for (CartItem item : cart.getCartItems()) {
             total += item.getQuantity() * item.getRate();
         }
-        return (total * 7) / 100;
+        return (total * 0.07);
     }
 
 
