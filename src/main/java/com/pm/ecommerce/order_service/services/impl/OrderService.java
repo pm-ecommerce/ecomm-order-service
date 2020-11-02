@@ -7,6 +7,9 @@ import com.pm.ecommerce.enums.ProductStatus;
 import com.pm.ecommerce.enums.VendorStatus;
 import com.pm.ecommerce.order_service.config.NewOrderEvent;
 import com.pm.ecommerce.order_service.config.NewScheduledDeliveryEvent;
+import com.pm.ecommerce.order_service.events.OrderCancelledEvent;
+import com.pm.ecommerce.order_service.events.OrderDeliveredEvent;
+import com.pm.ecommerce.order_service.events.OrderShippedEvent;
 import com.pm.ecommerce.order_service.model.*;
 import com.pm.ecommerce.order_service.repositories.*;
 import com.pm.ecommerce.order_service.services.IAddressService;
@@ -142,7 +145,6 @@ public class OrderService implements IOrderService {
         return order;
     }
 
-    // TODO: Create a controller method
     public ScheduledDeliveryResponse updateOrderStatus(int deliveryId, int status) throws Exception {
         ScheduledDelivery delivery = scheduledDeliveryRepository.findById(deliveryId).orElse(null);
 
@@ -155,12 +157,15 @@ public class OrderService implements IOrderService {
         }
         if (status == 2) {
             status1 = OrderItemStatus.SHIPPED;
+            publisher.publishEvent(new OrderShippedEvent(this, delivery));
         }
         if (status == 3) {
             status1 = OrderItemStatus.DELIVERED;
+            publisher.publishEvent(new OrderDeliveredEvent(this, delivery));
         }
         if (status == 4) {
             status1 = OrderItemStatus.CANCELLED;
+            publisher.publishEvent(new OrderCancelledEvent(this, delivery));
         }
         delivery.setStatus(status1);
         scheduledDeliveryRepository.save(delivery);
@@ -169,7 +174,6 @@ public class OrderService implements IOrderService {
     }
 
     // API for admin module
-    // TODO: create a controller for this method
     public PagedResponse<ScheduledDeliveryResponse> getActiveOrders(int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
         if (pageNum < 1) {
             throw new Exception("Page number is invalid.");
@@ -190,8 +194,6 @@ public class OrderService implements IOrderService {
                 .map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
         return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
-
-    // ==== end ====
 
     public PagedResponse<ScheduledDeliveryResponse> getUserOrders(int userId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
 
@@ -220,7 +222,6 @@ public class OrderService implements IOrderService {
         return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
 
-    // TODO: API to get vendor orders; Scheduled deliveries
     public PagedResponse<ScheduledDeliveryResponse> getVendorOrders(int vendorId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
 
         Vendor vendor = vendorRepository.findById(vendorId).orElse(null);
@@ -248,7 +249,6 @@ public class OrderService implements IOrderService {
         return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
 
-    // TODO: delete cart for the selected session id
     @Override
     public CartItemResponse deleteCartItem(int cartItemId, String sessionId) throws Exception {
         Cart cart = cartRepository.findBySessionId(sessionId).orElse(null);

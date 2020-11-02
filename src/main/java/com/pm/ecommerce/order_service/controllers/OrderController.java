@@ -40,7 +40,6 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
-    //dont return order, return scheduled deliveries
     @GetMapping("users/{userId}/active")
     public ResponseEntity<ApiResponse<PagedResponse<ScheduledDeliveryResponse>>> getUsersOrders(@PathVariable int userId,
                                                                                @RequestParam(name = "page", defaultValue = "1") int page,
