@@ -5,12 +5,8 @@ import com.pm.ecommerce.enums.OrderItemStatus;
 import com.pm.ecommerce.enums.OrderStatus;
 import com.pm.ecommerce.enums.ProductStatus;
 import com.pm.ecommerce.enums.VendorStatus;
-import com.pm.ecommerce.order_service.config.NewOrderEvent;
-import com.pm.ecommerce.order_service.config.NewScheduledDeliveryEvent;
-import com.pm.ecommerce.order_service.events.OrderCancelledEvent;
-import com.pm.ecommerce.order_service.events.OrderDeliveredEvent;
-import com.pm.ecommerce.order_service.events.OrderShippedEvent;
 import com.pm.ecommerce.order_service.model.*;
+import com.pm.ecommerce.order_service.notifications.events.*;
 import com.pm.ecommerce.order_service.repositories.*;
 import com.pm.ecommerce.order_service.services.IAddressService;
 import com.pm.ecommerce.order_service.services.IOrderService;
@@ -30,8 +26,11 @@ import java.util.stream.Collectors;
 
 @Service
 public class OrderService implements IOrderService {
-    @Value("stripe.apiKey:sk_test_I8Ora3L8Af2oo9fgBykDOAxj")
+    @Value("${stripe.apiKey:sk_test_I8Ora3L8Af2oo9fgBykDOAxj}")
     private String apiKey;
+
+    @Value("${site.commission:0.2}")
+    private double commissionRate;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -62,6 +61,9 @@ public class OrderService implements IOrderService {
 
     @Autowired
     private VendorRepository vendorRepository;
+
+    @Autowired
+    private CommissionRepository commissionRepository;
 
     public Order checkoutOrder(OrderInput orderInput) throws Exception {
         Cart cart = cartRepository.findBySessionId(orderInput.getSessionId()).orElse(null);
@@ -155,18 +157,38 @@ public class OrderService implements IOrderService {
         if (status == 1) {
             status1 = OrderItemStatus.IN_PROGRESS;
         }
+
         if (status == 2) {
             status1 = OrderItemStatus.SHIPPED;
             publisher.publishEvent(new OrderShippedEvent(this, delivery));
         }
+
         if (status == 3) {
             status1 = OrderItemStatus.DELIVERED;
-            publisher.publishEvent(new OrderDeliveredEvent(this, delivery));
+
+            Commission commission = new Commission();
+            double total = delivery.getItems()
+                    .stream()
+                    .map(e -> e.getQuantity() * e.getRate())
+                    .reduce(0.00, Double::sum);
+
+            commission.setCommission(total * commissionRate);
+            commission.setCommissionRate(commissionRate);
+            commission.setDelivery(delivery);
+            commission.setEarnedDate(new Timestamp(System.currentTimeMillis()));
+            commission.setSale(total);
+            commission.setVendor(delivery.getVendor());
+
+            commissionRepository.save(commission);
+
+            publisher.publishEvent(new OrderCompleteEvent(this, delivery));
         }
+
         if (status == 4) {
             status1 = OrderItemStatus.CANCELLED;
             publisher.publishEvent(new OrderCancelledEvent(this, delivery));
         }
+
         delivery.setStatus(status1);
         scheduledDeliveryRepository.save(delivery);
 
@@ -190,8 +212,11 @@ public class OrderService implements IOrderService {
         }
         Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByStatusIn(statusList, paging);
         int totalPages = pagedResult.getTotalPages();
+
         List<ScheduledDeliveryResponse> products = pagedResult.toList().stream()
-                .map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+                .map(ScheduledDeliveryResponse::new)
+                .collect(Collectors.toList());
+
         return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
     }
 
@@ -298,7 +323,7 @@ public class OrderService implements IOrderService {
             delivery.setUser(order.getUser());
             scheduledDeliveryRepository.save(delivery);
             //send an email to the vendor here
-            publisher.publishEvent(new NewScheduledDeliveryEvent(this, delivery));
+            publisher.publishEvent(new ScheduledDeliveryEvent(this, delivery));
         }
 
         //send an email to the user
@@ -367,8 +392,8 @@ public class OrderService implements IOrderService {
         if (card == null) {
             throw new Exception("Card not found");
         }
-//        Stripe.apiKey = apiKey;
-        Stripe.apiKey = "sk_test_I8Ora3L8Af2oo9fgBykDOAxj";
+
+        Stripe.apiKey = apiKey;
 
         Map<String, Object> params = new HashMap<>();
         params.put("amount", (int) amount * 100);
@@ -392,7 +417,7 @@ public class OrderService implements IOrderService {
         for (CartItem item : cart.getCartItems()) {
             total += item.getQuantity() * item.getRate();
         }
-        return (total * 7) / 100;
+        return (total * 0.07);
     }
 
 

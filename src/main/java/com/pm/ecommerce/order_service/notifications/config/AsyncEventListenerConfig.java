@@ -1,4 +1,4 @@
-package com.pm.ecommerce.order_service.config;
+package com.pm.ecommerce.order_service.notifications.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

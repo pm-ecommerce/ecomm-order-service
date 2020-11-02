@@ -1,10 +1,9 @@
-package com.pm.ecommerce.order_service.events;
+package com.pm.ecommerce.order_service.notifications.events;
 
 import com.pm.ecommerce.entities.ScheduledDelivery;
 import org.springframework.context.ApplicationEvent;
 
 public class OrderShippedEvent extends ApplicationEvent {
-
     private final ScheduledDelivery delivery;
 
     public OrderShippedEvent(Object source, ScheduledDelivery delivery) {

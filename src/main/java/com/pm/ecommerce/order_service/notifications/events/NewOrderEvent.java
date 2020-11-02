@@ -1,4 +1,4 @@
-package com.pm.ecommerce.order_service.config;
+package com.pm.ecommerce.order_service.notifications.events;
 
 import com.pm.ecommerce.entities.Order;
 import org.springframework.context.ApplicationEvent;
@@ -12,6 +12,6 @@ public class NewOrderEvent extends ApplicationEvent {
     }
 
     public Order getOrder() {
-        return order;
+        return this.order;
     }
 }
