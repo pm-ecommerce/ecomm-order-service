@@ -7,8 +7,7 @@ import com.pm.ecommerce.enums.ProductStatus;
 import com.pm.ecommerce.enums.VendorStatus;
 import com.pm.ecommerce.order_service.config.NewOrderEvent;
 import com.pm.ecommerce.order_service.config.NewScheduledDeliveryEvent;
-import com.pm.ecommerce.order_service.model.ChargeModel;
-import com.pm.ecommerce.order_service.model.OrderInput;
+import com.pm.ecommerce.order_service.model.*;
 import com.pm.ecommerce.order_service.repositories.*;
 import com.pm.ecommerce.order_service.services.IAddressService;
 import com.pm.ecommerce.order_service.services.IOrderService;
@@ -17,6 +16,9 @@ import com.stripe.model.Charge;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -51,6 +53,18 @@ public class OrderService implements IOrderService {
 
     @Autowired
     private ApplicationEventPublisher publisher;
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private VendorRepository vendorRepository;
 
     public Order checkoutOrder(OrderInput orderInput) throws Exception {
         Cart cart = cartRepository.findBySessionId(orderInput.getSessionId()).orElse(null);
@@ -130,9 +144,134 @@ public class OrderService implements IOrderService {
 
         scheduleDeliver(address, order);
 
-        // TODO: delete cart for the selected session id
-
         return order;
+    }
+
+    // TODO: Create a controller method
+    public ScheduledDeliveryResponse updateOrderStatus(int deliveryId, int status) throws Exception {
+        ScheduledDelivery delivery = scheduledDeliveryRepository.findById(deliveryId).orElse(null);
+        if (delivery == null) {
+            throw new Exception("Delivery not found");
+        }
+        OrderItemStatus status1 = OrderItemStatus.RECEIVED;
+        if (status == 1) {
+            status1 = OrderItemStatus.IN_PROGRESS;
+        }
+        if (status == 2) {
+            status1 = OrderItemStatus.SHIPPED;
+        }
+        if (status == 3) {
+            status1 = OrderItemStatus.DELIVERED;
+        }
+        if (status == 4) {
+            status1 = OrderItemStatus.CANCELLED;
+        }
+
+        delivery.setStatus(status1);
+        scheduledDeliveryRepository.save(delivery);
+
+        return new ScheduledDeliveryResponse(delivery);
+    }
+
+    // API for admin module
+    // TODO: create a controller for this method
+    public PagedResponse<ScheduledDeliveryResponse> getActiveOrders(int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
+        if (pageNum < 1) {
+            throw new Exception("Page number is invalid.");
+        }
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        List<OrderItemStatus> statusList = new ArrayList<>();
+        if (loadActive) {
+            statusList.add(OrderItemStatus.RECEIVED);
+            statusList.add(OrderItemStatus.IN_PROGRESS);
+            statusList.add(OrderItemStatus.SHIPPED);
+        } else {
+            statusList.add(OrderItemStatus.DELIVERED);
+            statusList.add(OrderItemStatus.CANCELLED);
+        }
+
+        Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByStatusIn(statusList, paging);
+        int totalPages = pagedResult.getTotalPages();
+        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream().map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+        return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
+    }
+
+    public PagedResponse<ScheduledDeliveryResponse> getUserOrders(int userId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            throw new Exception("User is not found");
+        }
+
+        if (pageNum < 1) {
+            throw new Exception("Page number is invalid.");
+        }
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        List<OrderItemStatus> statusList = new ArrayList<>();
+        if (loadActive) {
+            statusList.add(OrderItemStatus.RECEIVED);
+            statusList.add(OrderItemStatus.IN_PROGRESS);
+            statusList.add(OrderItemStatus.SHIPPED);
+        } else {
+            statusList.add(OrderItemStatus.DELIVERED);
+            statusList.add(OrderItemStatus.CANCELLED);
+        }
+
+        Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByUserIdAndStatusIn(userId, statusList, paging);
+        int totalPages = pagedResult.getTotalPages();
+        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream().map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+        return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
+    }
+
+    // TODO: API to get vendor orders; Scheduled deliveries
+    public PagedResponse<ScheduledDeliveryResponse> getVendorOrders(int vendorId, int pageNum, int itemsPerPage, boolean loadActive) throws Exception {
+
+        Vendor vendor = vendorRepository.findById(vendorId).orElse(null);
+        if (vendor == null) {
+            throw new Exception("Vendor is not found");
+        }
+
+        if (pageNum < 1) {
+            throw new Exception("Page number is invalid.");
+        }
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        List<OrderItemStatus> statusList = new ArrayList<>();
+        if (loadActive) {
+            statusList.add(OrderItemStatus.RECEIVED);
+            statusList.add(OrderItemStatus.IN_PROGRESS);
+            statusList.add(OrderItemStatus.SHIPPED);
+        } else {
+            statusList.add(OrderItemStatus.DELIVERED);
+            statusList.add(OrderItemStatus.CANCELLED);
+        }
+
+        Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByVendorIdAndStatusIn(vendorId, statusList, paging);
+        int totalPages = pagedResult.getTotalPages();
+        List<ScheduledDeliveryResponse> products = pagedResult.toList().stream().map(ScheduledDeliveryResponse::new).collect(Collectors.toList());
+        return new PagedResponse<>(totalPages, pageNum, itemsPerPage, products);
+    }
+
+    // TODO: delete cart for the selected session id
+    @Override
+    public CartItemResponse deleteCartItem(int cartItemId, String sessionId) throws Exception {
+        Cart cart = cartRepository.findBySessionId(sessionId).orElse(null);
+        if (cart == null) {
+            throw new Exception("Cart not found");
+        }
+
+        CartItem item = cart.getCartItems().stream().reduce(null, (a, b) -> b.getId() == cartItemId ? b : a);
+        if (item == null) {
+            throw new Exception("Cart item not found");
+        }
+
+        Set<CartItem> cartItems = cart.getCartItems();
+        cartItems.remove(item);
+        cartRepository.delete(cart);
+        User user = cart.getUser();
+        if (user == null) {
+            return new CartItemResponse(item);
+        }
+        return new CartItemResponse(item, user.getId());
     }
 
     private void scheduleDeliver(DeliveryAddress address, Order order) {
@@ -159,6 +298,7 @@ public class OrderService implements IOrderService {
             delivery.setVendor(vendorMap.get(vendorId));
             delivery.setDeliveryDate(new Timestamp(System.currentTimeMillis()));
             delivery.setStatus(OrderItemStatus.RECEIVED);
+            delivery.setUser(order.getUser());
             scheduledDeliveryRepository.save(delivery);
             //send an email to the vendor here
             publisher.publishEvent(new NewScheduledDeliveryEvent(this, delivery));
@@ -211,7 +351,7 @@ public class OrderService implements IOrderService {
 
         Category category = product.getCategory();
         if (category == null || category.isDeleted()) {
-            throw new Exception("Cartegory does not exist.");
+            throw new Exception("Category does not exist.");
         }
     }
 
@@ -255,7 +395,7 @@ public class OrderService implements IOrderService {
         for (CartItem item : cart.getCartItems()) {
             total += item.getQuantity() * item.getRate();
         }
-
         return (total * 7) / 100;
     }
+
 }
