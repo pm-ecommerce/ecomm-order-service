@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Order Received</title>
+</head>
+<body>
+Hi {{userName}},
+You order has been cancelled. <br>
+Below is a summary of your cancelled order: <br>
+<table>
+    <tbody>
+    <tr>
+        <th>Product</th>
+        <th>Quantity</th>
+        <th>Rate</th>
+        <th>price</th>
+    </tr>
+    {{#orderItems}}
+    <tr>
+        <td>{{name}}</td>
+        <td>{{quantity}}</td>
+        <td>${{rate}}</td>
+        <td>${{price}}</td>
+    </tr>
+    {{/orderItems}}
+    <tr>
+        <td>Delivery address</td>
+        <td>
+            {{address1}} {{address2}} <br>
+            {{city}}, {{zipcode}} <br>
+            {{state}}, USA <br>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

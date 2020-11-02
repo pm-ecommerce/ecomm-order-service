@@ -1,8 +1,0 @@
-new events for
-. vendor registered
-. vendor approved
-. vendor disapproved
-. product approved
-. product disapproved
-. order shipped
-. order complete
