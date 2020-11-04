@@ -18,6 +18,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -65,7 +66,7 @@ public class OrderService implements IOrderService {
     @Autowired
     private CommissionRepository commissionRepository;
 
-    public Order checkoutOrder(OrderInput orderInput) throws Exception {
+    public OrderResponse checkoutOrder(OrderInput orderInput) throws Exception {
         Cart cart = cartRepository.findBySessionId(orderInput.getSessionId()).orElse(null);
 
         if (cart == null) {
@@ -142,9 +143,10 @@ public class OrderService implements IOrderService {
         DeliveryAddress address = getDeliveryAddress(orderInput, shippingAddress, user);
         scheduleDeliver(address, order);
 
-        cartRepository.delete(cart);  // Delete user cart after checkout
+        // Delete user cart after checkout
+        cartRepository.delete(cart);
 
-        return order;
+        return new OrderResponse(order);
     }
 
     public ScheduledDeliveryResponse updateOrderStatus(int deliveryId, int status) throws Exception {
@@ -181,11 +183,15 @@ public class OrderService implements IOrderService {
 
             commissionRepository.save(commission);
 
+            delivery.setDeliveredDate(new Timestamp(System.currentTimeMillis()));
+
             publisher.publishEvent(new OrderCompleteEvent(this, delivery));
+
         }
 
         if (status == 4) {
             status1 = OrderItemStatus.CANCELLED;
+            delivery.setDeliveredDate(new Timestamp(System.currentTimeMillis()));
             publisher.publishEvent(new OrderCancelledEvent(this, delivery));
         }
 
@@ -200,7 +206,8 @@ public class OrderService implements IOrderService {
         if (pageNum < 1) {
             throw new Exception("Page number is invalid.");
         }
-        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage, Sort.by(Sort.Direction.DESC, "id"));
+
         List<OrderItemStatus> statusList = new ArrayList<>();
         if (loadActive) {
             statusList.add(OrderItemStatus.RECEIVED);
@@ -210,6 +217,7 @@ public class OrderService implements IOrderService {
             statusList.add(OrderItemStatus.DELIVERED);
             statusList.add(OrderItemStatus.CANCELLED);
         }
+
         Page<ScheduledDelivery> pagedResult = scheduledDeliveryRepository.findAllByStatusIn(statusList, paging);
         int totalPages = pagedResult.getTotalPages();
 
@@ -230,7 +238,8 @@ public class OrderService implements IOrderService {
         if (pageNum < 1) {
             throw new Exception("Page number is invalid.");
         }
-        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage, Sort.by(Sort.Direction.DESC, "id"));
+
         List<OrderItemStatus> statusList = new ArrayList<>();
         if (loadActive) {
             statusList.add(OrderItemStatus.RECEIVED);
@@ -257,7 +266,9 @@ public class OrderService implements IOrderService {
         if (pageNum < 1) {
             throw new Exception("Page number is invalid.");
         }
-        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage);
+
+        Pageable paging = PageRequest.of(pageNum - 1, itemsPerPage, Sort.by(Sort.Direction.DESC, "id"));
+
         List<OrderItemStatus> statusList = new ArrayList<>();
         if (loadActive) {
             statusList.add(OrderItemStatus.RECEIVED);
