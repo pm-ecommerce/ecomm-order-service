@@ -1,9 +1,6 @@
 package com.pm.ecommerce.order_service.model;
 
-import com.pm.ecommerce.entities.DeliveryAddress;
-import com.pm.ecommerce.entities.Image;
-import com.pm.ecommerce.entities.OrderItem;
-import com.pm.ecommerce.entities.ScheduledDelivery;
+import com.pm.ecommerce.entities.*;
 import com.pm.ecommerce.enums.OrderItemStatus;
 import lombok.Data;
 
@@ -54,6 +51,7 @@ public class ScheduledDeliveryResponse {
         double rate;
         int quantity;
         String image;
+        List<OrderItemAttribute> attributes;
 
         public OrderItemResponse() {
 
@@ -63,6 +61,7 @@ public class ScheduledDeliveryResponse {
             id = item.getId();
             rate = item.getRate();
             quantity = item.getQuantity();
+            attributes = item.getAttributes();
             if (item.getProduct() != null) {
                 name = item.getProduct().getName();
                 if (item.getProduct().getImages() != null && item.getProduct().getImages().size() > 0) {

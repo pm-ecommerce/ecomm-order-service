@@ -2,10 +2,7 @@ package com.pm.ecommerce.order_service.controllers;
 
 import com.pm.ecommerce.entities.ApiResponse;
 import com.pm.ecommerce.entities.Order;
-import com.pm.ecommerce.order_service.model.CartItemResponse;
-import com.pm.ecommerce.order_service.model.OrderInput;
-import com.pm.ecommerce.order_service.model.PagedResponse;
-import com.pm.ecommerce.order_service.model.ScheduledDeliveryResponse;
+import com.pm.ecommerce.order_service.model.*;
 import com.pm.ecommerce.order_service.services.IOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,10 +18,10 @@ public class OrderController {
     private IOrderService orderService;
 
     @PostMapping("")
-    public ResponseEntity<ApiResponse<Order>> checkoutOrder(@RequestBody OrderInput postData) {
-        ApiResponse<Order> response = new ApiResponse<>();
+    public ResponseEntity<ApiResponse<OrderResponse>> checkoutOrder(@RequestBody OrderInput postData) {
+        ApiResponse<OrderResponse> response = new ApiResponse<>();
         try {
-            Order order = orderService.checkoutOrder(postData);
+            OrderResponse order = orderService.checkoutOrder(postData);
 
             response.setData(order);
             response.setMessage("Order registered successfully.");
@@ -109,26 +106,6 @@ public class OrderController {
         }
         return ResponseEntity.ok(response);
     }
-
-
-    @GetMapping("/{orderId}")
-    public ResponseEntity<ApiResponse<Order>> getOrderId(@PathVariable int orderId) {
-        ApiResponse<Order> response = new ApiResponse<>();
-
-        try {
-            Order order = null;
-//            Order order = orderService.findById(orderId);
-
-            response.setData(order);
-            response.setMessage("Get order by id");
-        } catch (Exception e) {
-            response.setStatus(500);
-            response.setMessage(e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-        return ResponseEntity.ok(response);
-    }
-
 
     @DeleteMapping("{sessionId}/{cartItemId}")
     public ResponseEntity<ApiResponse<CartItemResponse>> deleteCartItem(@PathVariable String sessionId, @PathVariable int cartItemId) {
